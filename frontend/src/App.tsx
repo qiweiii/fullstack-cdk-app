@@ -39,12 +39,15 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const submit = async () => {
+    console.log(file?.name, text);
     setLoading(true);
     try {
       if (!file) {
         throw new Error("No file to upload!");
       }
-      const uploadRes = await Storage.put(file?.name, file, {});
+      const uploadRes = await Storage.put(file?.name, file, {
+        contentType: "text/plain",
+      });
       console.log("File Uploaded ", uploadRes);
       const filePath = uploadRes?.key;
       if (filePath) {

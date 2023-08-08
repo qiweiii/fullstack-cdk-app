@@ -111,6 +111,7 @@ export class InfraStackCC1 extends Stack {
           iam.ManagedPolicy.fromAwsManagedPolicyName(
             "service-role/AWSLambdaBasicExecutionRole"
           ),
+          iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
         ],
       }
     );
