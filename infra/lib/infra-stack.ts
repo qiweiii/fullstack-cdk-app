@@ -328,7 +328,6 @@ export class InfraStackCC1 extends Stack {
         dataTraceEnabled: true,
       },
     });
-    const files = api.root.addResource("files");
     // create authorizer
     const authorizer = new apigateway.CfnAuthorizer(this, "cfnAuth", {
       restApiId: api.restApiId,
@@ -338,13 +337,18 @@ export class InfraStackCC1 extends Stack {
       providerArns: [userPool.userPoolArn],
     });
     // add method with authorizer
+    const files = api.root.addResource("files");
     files.addMethod("POST", createOneIntegration, {
       authorizationType: apigateway.AuthorizationType.COGNITO,
       authorizer: {
         authorizerId: authorizer.ref,
       },
     });
-    addCorsOptions(files);
+    files.addCorsPreflight({
+      allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      allowMethods: apigateway.Cors.ALL_METHODS,
+      allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
+    });
 
     // ========================================================================
     // Resource: Amplify App
@@ -416,46 +420,4 @@ export class InfraStackCC1 extends Stack {
       value: amplifyApp.defaultDomain,
     });
   }
-}
-
-export function addCorsOptions(apiResource: apigateway.IResource) {
-  apiResource.addMethod(
-    "OPTIONS",
-    new apigateway.MockIntegration({
-      // In case you want to use binary media types, uncomment the following line
-      // contentHandling: ContentHandling.CONVERT_TO_TEXT,
-      integrationResponses: [
-        {
-          statusCode: "200",
-          responseParameters: {
-            "method.response.header.Access-Control-Allow-Headers":
-              "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
-            "method.response.header.Access-Control-Allow-Origin": "'*'",
-            "method.response.header.Access-Control-Allow-Credentials":
-              "'false'",
-            "method.response.header.Access-Control-Allow-Methods":
-              "'OPTIONS,GET,PUT,POST,DELETE'",
-          },
-        },
-      ],
-      // In case you want to use binary media types, comment out the following line
-      passthroughBehavior: apigateway.PassthroughBehavior.NEVER,
-      requestTemplates: {
-        "application/json": '{"statusCode": 200}',
-      },
-    }),
-    {
-      methodResponses: [
-        {
-          statusCode: "200",
-          responseParameters: {
-            "method.response.header.Access-Control-Allow-Headers": true,
-            "method.response.header.Access-Control-Allow-Methods": true,
-            "method.response.header.Access-Control-Allow-Credentials": true,
-            "method.response.header.Access-Control-Allow-Origin": true,
-          },
-        },
-      ],
-    }
-  );
 }

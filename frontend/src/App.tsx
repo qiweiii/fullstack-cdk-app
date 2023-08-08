@@ -1,6 +1,6 @@
 import "./App.css";
 import "@aws-amplify/ui-react/styles.css";
-import { API, Amplify, Storage } from "aws-amplify";
+import { API, Amplify, Auth, Storage } from "aws-amplify";
 import {
   Authenticator,
   Button,
@@ -21,8 +21,13 @@ console.log("Amplify config ", aConfig);
 
 async function apiPostData(input_text: string, input_file_path: string) {
   const apiName = "files-api";
-  const path = "/files";
+  const path = "files";
   const myInit = {
+    headers: {
+      Authorization: `Bearer ${(await Auth.currentSession())
+        .getIdToken()
+        .getJwtToken()}`,
+    },
     body: {
       input_text: input_text,
       input_file_path: input_file_path,
