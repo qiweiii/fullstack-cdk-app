@@ -409,6 +409,9 @@ export class InfraStackCC1 extends Stack {
     new CfnOutput(this, "ApiUrl", {
       value: api.url,
     });
+    new CfnOutput(this, "ApiName", {
+      value: api.restApiName,
+    });
     new CfnOutput(this, "AppUrl", {
       value: amplifyApp.defaultDomain,
     });
