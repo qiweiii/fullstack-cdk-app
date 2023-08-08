@@ -4,7 +4,7 @@ A fullstack app code challenge before interview.
 
 Also a good learning material to implement a fullstack app using standard aws resources with the latest versions of cli/sdk/cdk (2023-08)
 
-Deployed version: https://d1xgvbtzwiqkcm.amplifyapp.com
+Deployed version: https://main.d1xgvbtzwiqkcm.amplifyapp.com/
 
 # How to play
 - make sure you have `CDK_DEFAULT_ACCOUNT` and `CDK_DEFAULT_REGION` in your env

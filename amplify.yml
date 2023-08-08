@@ -9,7 +9,7 @@ frontend:
       commands:
         - yarn build
   artifacts:
-    baseDirectory: frontend/build
+    baseDirectory: frontend/dist
     files:
       - "frontend/**/*"
   cache:
