@@ -11,6 +11,7 @@ import {
   aws_lambda as lambda,
   aws_s3 as s3,
   aws_ssm as ssm,
+  aws_iam as iam,
 } from "aws-cdk-lib";
 import { DynamoEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 import {
@@ -80,13 +81,58 @@ export class InfraStackCC1 extends Stack {
       this,
       "code-challenge-1-IdentityPool-" + id,
       {
-        allowUnauthenticatedIdentities: false, // Don't allow unathenticated users
+        allowUnauthenticatedIdentities: false,
         cognitoIdentityProviders: [
           {
             clientId: userPoolClient.userPoolClientId,
             providerName: userPool.userPoolProviderName,
           },
         ],
+      }
+    );
+    const isUserCognitoGroupRole = new iam.Role(
+      this,
+      "code-challenge-1-users-group-role",
+      {
+        description: "Default role for authenticated users",
+        assumedBy: new iam.FederatedPrincipal(
+          "cognito-identity.amazonaws.com",
+          {
+            StringEquals: {
+              "cognito-identity.amazonaws.com:aud": identityPool.ref,
+            },
+            "ForAnyValue:StringLike": {
+              "cognito-identity.amazonaws.com:amr": "authenticated",
+            },
+          },
+          "sts:AssumeRoleWithWebIdentity"
+        ),
+        managedPolicies: [
+          iam.ManagedPolicy.fromAwsManagedPolicyName(
+            "service-role/AWSLambdaBasicExecutionRole"
+          ),
+        ],
+      }
+    );
+    new cognito.CfnIdentityPoolRoleAttachment(
+      this,
+      "cc1-identity-pool-role-attachment",
+      {
+        identityPoolId: identityPool.ref,
+        roles: {
+          authenticated: isUserCognitoGroupRole.roleArn,
+        },
+        roleMappings: {
+          mapping: {
+            type: "Token",
+            ambiguousRoleResolution: "AuthenticatedRole",
+            identityProvider: `cognito-idp.${
+              Stack.of(this).region
+            }.amazonaws.com/${userPool.userPoolId}:${
+              userPoolClient.userPoolClientId
+            }`,
+          },
+        },
       }
     );
 
@@ -100,6 +146,18 @@ export class InfraStackCC1 extends Stack {
       autoDeleteObjects: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       publicReadAccess: false,
+      cors: [
+        {
+          allowedMethods: [
+            s3.HttpMethods.GET,
+            s3.HttpMethods.POST,
+            s3.HttpMethods.PUT,
+          ],
+          // TODO: should restrict to only the frontend domain, but results in circular dependency
+          allowedOrigins: ["*"],
+          allowedHeaders: ["*"],
+        },
+      ],
     });
     // add a script for vm execution later
     const scriptBucket = new s3.Bucket(this, "code-challenge-1-ScriptBucket", {
@@ -176,15 +234,20 @@ export class InfraStackCC1 extends Stack {
         },
       ],
     });
-
     const ami = ec2.MachineImage.latestAmazonLinux2023({
       cachedInContext: false,
       cpuType: ec2.AmazonLinuxCpuType.ARM_64,
     });
-
     const cfnKeyPair = new ec2.CfnKeyPair(this, "code-challenge-1-CfnKeyPair", {
       keyName: "CC1-key-name",
     });
+    // Instance role that allows SSM to connect
+    const role = new iam.Role(this, "InstanceRoleWithSsmPolicy", {
+      assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
+    });
+    role.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
+    );
 
     // ========================================================================
     // Resource: Amazon DynamoDB Table
@@ -227,6 +290,7 @@ export class InfraStackCC1 extends Stack {
         KEY_NAME: cfnKeyPair.keyName,
         FILE_BUCKET: fileBucket.bucketName,
         SSM_DOCUMENT_NAME: cfnDocument.name || "",
+        ROLE_ARN: role.roleArn,
       },
     });
     // Add DynamoDB event source to Lambda function

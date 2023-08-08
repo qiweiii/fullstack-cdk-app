@@ -16,7 +16,8 @@ import { DefaultDarkMode } from "./components/DarkMode";
 import { useState } from "react";
 import config from "./config";
 
-Amplify.configure(config);
+const aConfig = Amplify.configure(config);
+console.log("Amplify config ", aConfig);
 
 async function apiPostData(input_text: string, input_file_path: string) {
   const apiName = "files-api";
@@ -53,7 +54,7 @@ export default function App() {
         throw new Error("No uploaded file path!");
       }
     } catch (error) {
-      console.log("Submit Error ", error);
+      console.log("Submit Error: ", error);
       setLoading(false);
     }
     setLoading(false);
@@ -90,6 +91,7 @@ export default function App() {
                 <input
                   type="file"
                   name="file"
+                  accept=".txt"
                   onChange={(e) => setFile(e.target.files?.[0])}
                 />
                 <Button

@@ -5,7 +5,7 @@ retrieve_inputs_from_dynamodb() {
   id=$1
   region=$2
 
-  input_text=$(aws dynamodb get-item --table-name FileTable --key "{\"id\": {\"S\": \"$id\"}}" --region $region --query 'Item.input_text.S' --output text)
+  input_text=$(aws dynamodb get-item --table-name file-items --key "{\"id\": {\"S\": \"$id\"}}" --region $region --query 'Item.input_text.S' --output text)
 
   if [[ -z $input_text ]]; then
     echo "Input not found for id: $id"
@@ -20,7 +20,7 @@ retrieve_input_file_path_from_dynamodb() {
   id=$1
   region=$2
 
-  input_file_path=$(aws dynamodb get-item --table-name FileTable --key "{\"id\": {\"S\": \"$id\"}}" --region $region --query 'Item.input_file_path.S' --output text)
+  input_file_path=$(aws dynamodb get-item --table-name file-items --key "{\"id\": {\"S\": \"$id\"}}" --region $region --query 'Item.input_file_path.S' --output text)
 
   if [[ -z $input_file_path ]]; then
     echo "Input file path not found for id: $id"
@@ -35,8 +35,7 @@ download_input_file_from_s3() {
   input_file=$1
   region=$2
 
-  # aws s3 cp s3://$input_file . --region $region
-  aws s3 cp s3://$input_file ./input.txt --region $region
+  aws s3 cp s3://$input_file input.txt --region $region
 }
 
 # Function to append input to output file
@@ -65,7 +64,7 @@ save_outputs_to_dynamodb() {
   output_file=$2
   region=$3
 
-  aws dynamodb update-item --table-name FileTable --key "{\"id\": {\"S\": \"$id\"}}" --update-expression "SET output_file_path = :outputFile" --expression-attribute-values "{\":outputFile\": {\"S\": \"$output_file\"}}" --region $region
+  aws dynamodb update-item --table-name file-items --key "{\"id\": {\"S\": \"$id\"}}" --update-expression "SET output_file_path = :outputFile" --expression-attribute-values "{\":outputFile\": {\"S\": \"$output_file\"}}" --region $region
 }
 
 # Main function

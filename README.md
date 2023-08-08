@@ -48,3 +48,4 @@ VITE_API_URL=
 - connect amplify to existing resources: https://docs.amplify.aws/lib/auth/getting-started/q/platform/js/#install-amplify-libraries
 - amplify vite toubleshoot: https://ui.docs.amplify.aws/react/getting-started/troubleshooting#uncaught-referenceerror-global-is-not-defined-1
 - upload files: https://docs.amplify.aws/lib/storage/upload/q/platform/js/
+- add s3 cdk cors: https://bobbyhadz.com/blog/add-cors-s3-bucket-aws-cdk

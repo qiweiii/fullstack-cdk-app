@@ -23,6 +23,9 @@ const lambdaHandler: DynamoDBStreamHandler = async (
       MaxCount: 1,
       KeyName: process.env.KEY_NAME,
       SubnetId: process.env.SUBNET_ID,
+      IamInstanceProfile: {
+        Arn: process.env.ROLE_ARN,
+      },
     };
     console.log("instanceParams:", instanceParams);
     const { Instances } = await ec2.send(
@@ -36,20 +39,6 @@ const lambdaHandler: DynamoDBStreamHandler = async (
         { InstanceIds: [instanceId || ""] }
       );
       console.log(`Successfully launched instance: ${instanceId}`);
-
-      // Retrieve the script from S3
-      // const s3Client = new S3Client({ region: process.env.AWS_REGION });
-      // const getObjectCommand = new GetObjectCommand({
-      //   Bucket: process.env.SCRIPT_BUCKET,
-      //   Key: process.env.SCRIPT_KEY,
-      // });
-      // const response = await s3Client.send(getObjectCommand);
-      // const chunk = await response.Body?.transformToByteArray();
-      // if (!chunk) {
-      //   throw new Error("Failed to retrieve script from S3");
-      // }
-      // const path = "/tmp-scripts/script.sh";
-      // await appendFile(path, Buffer.from(chunk), "utf8");
 
       // Run script in ec2 instance
       const ssm = new SSMClient({ region: process.env.AWS_REGION });
