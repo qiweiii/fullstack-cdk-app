@@ -56,7 +56,10 @@ export default function App() {
       console.log("File Uploaded ", uploadRes);
       const filePath = uploadRes?.key;
       if (filePath) {
-        await apiPostData(text, filePath);
+        await apiPostData(
+          text,
+          `${import.meta.env.VITE_FILEBUCKET}/${filePath}`
+        );
         setText("");
       } else {
         throw new Error("No uploaded file path!");

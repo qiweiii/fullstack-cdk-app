@@ -85,7 +85,7 @@ main() {
   download_input_file_from_s3 $input_file_path $region
   append_input_to_output_file "$input_text" "input.txt" $output_file
   upload_output_file_to_s3 $bucket_name $output_file $region
-  save_outputs_to_dynamodb $id "$bucket_name/$output_file" $region
+  # save_outputs_to_dynamodb $id "$bucket_name/$output_file" $region
 
   echo "Task completed successfully!"
 }

@@ -294,12 +294,12 @@ export class InfraStackCC1 extends Stack {
       },
     });
     // Add DynamoDB event source to Lambda function
-    triggerVmFunction.addEventSource(
-      new DynamoEventSource(dynamoTable, {
-        startingPosition: lambda.StartingPosition.LATEST,
-        batchSize: 1,
-      })
-    );
+    // triggerVmFunction.addEventSource(
+    //   new DynamoEventSource(dynamoTable, {
+    //     startingPosition: lambda.StartingPosition.LATEST,
+    //     batchSize: 1,
+    //   })
+    // );
 
     // lambda for file creation
     const createOneLambda = new NodejsFunction(this, "createItemFunction", {
