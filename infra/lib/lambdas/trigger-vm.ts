@@ -8,9 +8,7 @@ import {
 } from "@aws-sdk/client-ec2";
 import { SSMClient, SendCommandCommand } from "@aws-sdk/client-ssm";
 
-const lambdaHandler: DynamoDBStreamHandler = async (
-  event: DynamoDBStreamEvent
-) => {
+const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent) => {
   try {
     // Create an EC2 instance
     const ec2 = new EC2Client({
@@ -67,4 +65,4 @@ const lambdaHandler: DynamoDBStreamHandler = async (
   }
 };
 
-export { lambdaHandler };
+export default handler;

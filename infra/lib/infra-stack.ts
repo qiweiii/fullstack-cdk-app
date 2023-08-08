@@ -273,7 +273,6 @@ export class InfraStackCC1 extends Stack {
         externalModules: [
           "@aws-sdk/*", // Use the 'aws-sdk' available in the Lambda runtime
           "aws-lambda",
-          "nanoid",
         ],
       },
       environment: {

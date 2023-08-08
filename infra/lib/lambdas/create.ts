@@ -6,7 +6,7 @@ import {
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { nanoid } from "nanoid";
 
-export async function lambdaHandler(
+export async function handler(
   event: APIGatewayProxyEvent,
   context: Context
 ): Promise<APIGatewayProxyResult> {
