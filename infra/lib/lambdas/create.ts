@@ -32,6 +32,10 @@ export async function handler(
 
     return {
       statusCode: 200,
+      // this prevents CORS errors in the browser console
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
       body: JSON.stringify({ message: "Item saved successfully", res }),
     };
   } catch (error) {
