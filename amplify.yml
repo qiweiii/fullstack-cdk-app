@@ -1,0 +1,17 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd frontend
+        - rm -rf node_modules && yarn install --frozen-lockfile
+    build:
+      commands:
+        - yarn build
+  artifacts:
+    baseDirectory: frontend/build
+    files:
+      - "frontend/**/*"
+  cache:
+    paths:
+      - frontend/node_modules/**/*
