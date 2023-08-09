@@ -238,6 +238,7 @@ export class InfraStackCC1 extends Stack {
     const ami = ec2.MachineImage.latestAmazonLinux2023({
       cachedInContext: false,
       cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+      edition: ec2.AmazonLinuxEdition.MINIMAL,
     });
     const cfnKeyPair = new ec2.CfnKeyPair(this, "code-challenge-1-CfnKeyPair", {
       keyName: "CC1-key-name",
@@ -294,12 +295,18 @@ export class InfraStackCC1 extends Stack {
       },
     });
     // Add DynamoDB event source to Lambda function
-    // triggerVmFunction.addEventSource(
-    //   new DynamoEventSource(dynamoTable, {
-    //     startingPosition: lambda.StartingPosition.LATEST,
-    //     batchSize: 1,
-    //   })
-    // );
+    triggerVmFunction.addEventSource(
+      new DynamoEventSource(dynamoTable, {
+        batchSize: 1,
+        startingPosition: lambda.StartingPosition.LATEST,
+        retryAttempts: 1, // must specify or it call infinitely
+        filters: [
+          lambda.FilterCriteria.filter({
+            eventName: lambda.FilterRule.isEqual("INSERT"),
+          }),
+        ],
+      })
+    );
 
     // lambda for file creation
     const createOneLambda = new NodejsFunction(this, "createItemFunction", {

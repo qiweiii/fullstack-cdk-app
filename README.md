@@ -52,3 +52,6 @@ VITE_API_URL=
 - useful gist with list of aws managed policies: https://gist.github.com/bernadinm/6f68bfdd015b3f3e0a17b2f00c9ea3f8
 - super good cdk blogs: https://bobbyhadz.com/
 - hidden amplify api configuration troubleshoot: https://docs.amplify.aws/lib/restapi/authz/q/platform/js/
+- ddb event source filters:
+  - https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.Lambda.Tutorial2.html
+  - https://stackoverflow.com/questions/70363945/filter-criteria-in-lambda-function
