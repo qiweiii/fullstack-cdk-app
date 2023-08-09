@@ -13,26 +13,27 @@ import {
 } from "@aws-sdk/client-ssm";
 
 const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent) => {
+  let ec2;
+  let instanceId;
   try {
     // Create an EC2 instance
-    const ec2 = new EC2Client({
-      region: process.env.AWS_REGION,
-    });
+    ec2 = new EC2Client({});
     const instanceParams: RunInstancesCommandInput = {
       ImageId: process.env.AMI_ID,
       MinCount: 1,
       MaxCount: 1,
       KeyName: process.env.KEY_NAME,
       SubnetId: process.env.SUBNET_ID,
+      InstanceType: "t2.micro",
       IamInstanceProfile: {
-        Arn: process.env.ROLE_ARN,
+        Arn: process.env.INSTANCE_PROFILE_ARN,
       },
     };
     console.log("instanceParams:", instanceParams);
     const { Instances } = await ec2.send(
       new RunInstancesCommand(instanceParams)
     );
-    const instanceId = Instances?.[0].InstanceId;
+    instanceId = Instances?.[0].InstanceId;
     console.log(`Run instance command sent, instanceId: ${instanceId}`);
     await waitUntilInstanceStatusOk(
       { client: ec2, maxWaitTime: 300 },
@@ -45,7 +46,7 @@ const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent) => {
     const command = new SendCommandCommand({
       InstanceIds: [instanceId || ""],
       DocumentName: process.env.SSM_DOCUMENT_NAME || "",
-      TimeoutSeconds: 480,
+      TimeoutSeconds: 300,
       Parameters: {
         region: [process.env.AWS_REGION || ""],
         bucketName: [process.env.FILE_BUCKET || ""],
@@ -55,7 +56,7 @@ const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent) => {
     const sentCommand = await ssm.send(command);
     console.log(`Successfully sent command to instance: ${sentCommand}`);
     const waitResult = await waitUntilCommandExecuted(
-      { client: ssm, maxWaitTime: 480, minDelay: 5 },
+      { client: ssm, maxWaitTime: 300, minDelay: 5 },
       {
         CommandId: sentCommand.Command?.CommandId,
         InstanceId: instanceId || "",
@@ -71,6 +72,10 @@ const handler: DynamoDBStreamHandler = async (event: DynamoDBStreamEvent) => {
   } catch (error) {
     console.error("Error:", error);
     throw error;
+  } finally {
+    await ec2!.send(
+      new TerminateInstancesCommand({ InstanceIds: [instanceId || ""] })
+    );
   }
 };
 

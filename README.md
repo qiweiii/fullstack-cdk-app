@@ -49,9 +49,14 @@ VITE_API_URL=
 - amplify vite toubleshoot: https://ui.docs.amplify.aws/react/getting-started/troubleshooting#uncaught-referenceerror-global-is-not-defined-1
 - upload files: https://docs.amplify.aws/lib/storage/upload/q/platform/js/
 - add s3 cdk cors: https://bobbyhadz.com/blog/add-cors-s3-bucket-aws-cdk
-- useful gist with list of aws managed policies: https://gist.github.com/bernadinm/6f68bfdd015b3f3e0a17b2f00c9ea3f8
+- useful gist with list of aws managed policies:
+  - https://gist.github.com/bernadinm/6f68bfdd015b3f3e0a17b2f00c9ea3f8
+  - https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AmazonSSMManagedInstanceCore.html
 - super good cdk blogs: https://bobbyhadz.com/
 - hidden amplify api configuration troubleshoot: https://docs.amplify.aws/lib/restapi/authz/q/platform/js/
 - ddb event source filters:
   - https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.Lambda.Tutorial2.html
   - https://stackoverflow.com/questions/70363945/filter-criteria-in-lambda-function
+- for lambda create instance, need iam:PassRole for both lambda role and instance profile role: https://stackoverflow.com/questions/54788320/access-issue-with-lambda-trying-to-launch-ec2-instance
+- print encoded authorization error message: https://stackoverflow.com/questions/66110275/aws-ec2-you-are-not-authorized-to-perform-this-operation-encoded-authorization
+  - `aws sts decode-authorization-message --encoded-message`

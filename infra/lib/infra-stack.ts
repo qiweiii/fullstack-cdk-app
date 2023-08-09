@@ -4,6 +4,7 @@ import * as amplify from "@aws-cdk/aws-amplify-alpha";
 import { BucketDeployment, Source } from "aws-cdk-lib/aws-s3-deployment";
 import {
   CfnOutput,
+  Duration,
   aws_apigateway as apigateway,
   aws_cognito as cognito,
   aws_dynamodb as dynamodb,
@@ -237,18 +238,41 @@ export class InfraStackCC1 extends Stack {
     });
     const ami = ec2.MachineImage.latestAmazonLinux2023({
       cachedInContext: false,
-      cpuType: ec2.AmazonLinuxCpuType.ARM_64,
+      cpuType: ec2.AmazonLinuxCpuType.X86_64,
       edition: ec2.AmazonLinuxEdition.MINIMAL,
     });
     const cfnKeyPair = new ec2.CfnKeyPair(this, "code-challenge-1-CfnKeyPair", {
       keyName: "CC1-key-name",
     });
-    // Instance role that allows SSM to connect
-    const role = new iam.Role(this, "InstanceRoleWithSsmPolicy", {
-      assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
+    const passRolePolicy = new iam.PolicyDocument({
+      statements: [
+        new iam.PolicyStatement({
+          actions: ["iam:PassRole"],
+          resources: ["*"],
+        }),
+      ],
     });
-    role.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")
+    // Instance role for trigger ec2
+    const instanceRole = new iam.Role(this, "CC1-InstanceRole", {
+      assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
+      inlinePolicies: {
+        passRolePolicy,
+      },
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          "AmazonSSMManagedInstanceCore"
+        ),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonDynamoDBFullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
+      ],
+    });
+    const instanceProfile = new iam.CfnInstanceProfile(
+      this,
+      "CC1-MyCfnInstanceProfile",
+      {
+        roles: [instanceRole.roleName],
+      }
     );
 
     // ========================================================================
@@ -268,7 +292,7 @@ export class InfraStackCC1 extends Stack {
     // ========================================================================
     // Resource: Lambda
     // ========================================================================
-    // lambda for creating vm and run script
+    // common lambda props
     const nodeJsFunctionProps: NodejsFunctionProps = {
       bundling: {
         externalModules: [
@@ -281,9 +305,40 @@ export class InfraStackCC1 extends Stack {
       },
       runtime: lambda.Runtime.NODEJS_18_X,
     };
+    // lambda role for trigger vm
+    const lambdaExecutionRole = new iam.Role(
+      this,
+      "code-challenge-1-LambdaExecutionRole",
+      {
+        assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+        inlinePolicies: {
+          passRolePolicy,
+          ssmSendCmd: new iam.PolicyDocument({
+            statements: [
+              new iam.PolicyStatement({
+                actions: ["ssm:SendCommand"],
+                resources: ["*"],
+              }),
+            ],
+          }),
+        },
+        managedPolicies: [
+          iam.ManagedPolicy.fromAwsManagedPolicyName(
+            "service-role/AWSLambdaBasicExecutionRole"
+          ),
+          iam.ManagedPolicy.fromAwsManagedPolicyName(
+            "AmazonSSMManagedInstanceCore"
+          ),
+          iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess"),
+        ],
+      }
+    );
+    // lambda for creating vm and run script
     const triggerVmFunction = new NodejsFunction(this, "triggerVmFunction", {
       ...nodeJsFunctionProps,
+      role: lambdaExecutionRole,
       entry: join(__dirname, "lambdas", "trigger-vm.ts"),
+      timeout: Duration.minutes(8),
       environment: {
         ...nodeJsFunctionProps.environment,
         SUBNET_ID: vpc.publicSubnets[0].subnetId,
@@ -291,7 +346,7 @@ export class InfraStackCC1 extends Stack {
         KEY_NAME: cfnKeyPair.keyName,
         FILE_BUCKET: fileBucket.bucketName,
         SSM_DOCUMENT_NAME: cfnDocument.name || "",
-        ROLE_ARN: role.roleArn,
+        INSTANCE_PROFILE_ARN: instanceProfile.attrArn,
       },
     });
     // Add DynamoDB event source to Lambda function
@@ -299,7 +354,7 @@ export class InfraStackCC1 extends Stack {
       new DynamoEventSource(dynamoTable, {
         batchSize: 1,
         startingPosition: lambda.StartingPosition.LATEST,
-        retryAttempts: 1, // must specify or it call infinitely
+        retryAttempts: 0, // must specify a number or it call infinitely
         filters: [
           lambda.FilterCriteria.filter({
             eventName: lambda.FilterRule.isEqual("INSERT"),
