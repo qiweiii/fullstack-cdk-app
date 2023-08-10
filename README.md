@@ -60,3 +60,5 @@ VITE_API_URL=
 - for lambda create instance, need iam:PassRole for both lambda role and instance profile role: https://stackoverflow.com/questions/54788320/access-issue-with-lambda-trying-to-launch-ec2-instance
 - print encoded authorization error message: https://stackoverflow.com/questions/66110275/aws-ec2-you-are-not-authorized-to-perform-this-operation-encoded-authorization
   - `aws sts decode-authorization-message --encoded-message`
+- super confusing ssm error: `Instances [[]] not in a valid state for account`
+  - https://medium.com/@the.nick.miller/use-python-lambdas-to-remotely-run-shell-commands-on-ec2-instances-57a92a2f5943

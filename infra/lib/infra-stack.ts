@@ -225,7 +225,6 @@ export class InfraStackCC1 extends Stack {
     // ========================================================================
     // Resource: VPC
     // ========================================================================
-    // Purpose: for creating an EC2 instance
     const vpc = new ec2.Vpc(this, "code-challenge-1-VPC", {
       natGateways: 0,
       subnetConfiguration: [
@@ -236,10 +235,29 @@ export class InfraStackCC1 extends Stack {
         },
       ],
     });
-    const ami = ec2.MachineImage.latestAmazonLinux2023({
+    // create Security Group for debugging inside Instance
+    const cc1SG = new ec2.SecurityGroup(this, "cc1-sg", {
+      vpc,
+      allowAllOutbound: true,
+    });
+    cc1SG.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(22),
+      "allow SSH access from anywhere"
+    );
+    cc1SG.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(80),
+      "allow HTTP traffic from anywhere"
+    );
+    cc1SG.addIngressRule(
+      ec2.Peer.anyIpv4(),
+      ec2.Port.tcp(443),
+      "allow HTTPS traffic from anywhere"
+    );
+    // choose latest Amazon Linux 2 image to use instance connect and ssm
+    const ami = ec2.MachineImage.latestAmazonLinux2({
       cachedInContext: false,
-      cpuType: ec2.AmazonLinuxCpuType.X86_64,
-      edition: ec2.AmazonLinuxEdition.MINIMAL,
     });
     const cfnKeyPair = new ec2.CfnKeyPair(this, "code-challenge-1-CfnKeyPair", {
       keyName: "CC1-key-name",
@@ -259,9 +277,7 @@ export class InfraStackCC1 extends Stack {
         passRolePolicy,
       },
       managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName(
-          "AmazonSSMManagedInstanceCore"
-        ),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMFullAccess"),
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess"),
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonDynamoDBFullAccess"),
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
@@ -305,18 +321,18 @@ export class InfraStackCC1 extends Stack {
       },
       runtime: lambda.Runtime.NODEJS_18_X,
     };
-    // lambda role for trigger vm
-    const lambdaExecutionRole = new iam.Role(
+    // lambda's role for trigger vm
+    const lambdaTriggerVmRole = new iam.Role(
       this,
       "code-challenge-1-LambdaExecutionRole",
       {
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         inlinePolicies: {
           passRolePolicy,
-          ssmSendCmd: new iam.PolicyDocument({
+          ssmAccess: new iam.PolicyDocument({
             statements: [
               new iam.PolicyStatement({
-                actions: ["ssm:SendCommand"],
+                actions: ["ssm:SendCommand", "ssm:DescribeInstanceInformation"],
                 resources: ["*"],
               }),
             ],
@@ -326,9 +342,7 @@ export class InfraStackCC1 extends Stack {
           iam.ManagedPolicy.fromAwsManagedPolicyName(
             "service-role/AWSLambdaBasicExecutionRole"
           ),
-          iam.ManagedPolicy.fromAwsManagedPolicyName(
-            "AmazonSSMManagedInstanceCore"
-          ),
+          iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMFullAccess"),
           iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess"),
         ],
       }
@@ -336,9 +350,9 @@ export class InfraStackCC1 extends Stack {
     // lambda for creating vm and run script
     const triggerVmFunction = new NodejsFunction(this, "triggerVmFunction", {
       ...nodeJsFunctionProps,
-      role: lambdaExecutionRole,
+      role: lambdaTriggerVmRole,
       entry: join(__dirname, "lambdas", "trigger-vm.ts"),
-      timeout: Duration.minutes(8),
+      timeout: Duration.minutes(15),
       environment: {
         ...nodeJsFunctionProps.environment,
         SUBNET_ID: vpc.publicSubnets[0].subnetId,
@@ -347,6 +361,7 @@ export class InfraStackCC1 extends Stack {
         FILE_BUCKET: fileBucket.bucketName,
         SSM_DOCUMENT_NAME: cfnDocument.name || "",
         INSTANCE_PROFILE_ARN: instanceProfile.attrArn,
+        SG_ID: cc1SG.securityGroupId,
       },
     });
     // Add DynamoDB event source to Lambda function
