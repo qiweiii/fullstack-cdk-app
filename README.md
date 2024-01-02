@@ -1,4 +1,4 @@
-# fullstack-cdk-app template
+# `fullstack-cdk-app` template
 
 A fullstack app *template*:
 
@@ -6,7 +6,7 @@ A fullstack app *template*:
   - React
   - TypeScript
   - Vite
-  - AWS Amplify (for auth and api access)
+  - AWS Amplify (for auth, api access, and continuous deployment)
 
 - Backend & infra:
   - TypeScript
