@@ -47,6 +47,10 @@ npx degit qiweiii/fullstack-cdk-app my-app
 9. run `yarn dev` to test the app locally (or directly use `AppUrl` from step 7 to view the deployed version)
 10. `cdk destroy` to clean up the stack
 
+## Todo
+
+- [ ] frontend migrate to amplify v6
+
 ## References & links
 
 - setup local aws access: https://docs.aws.amazon.com/sdkref/latest/guide/access-sso.html
@@ -58,10 +62,10 @@ npx degit qiweiii/fullstack-cdk-app my-app
 - cdk doc: https://docs.aws.amazon.com/cdk/api/v2/docs/aws-construct-library.html
 - aws sdk v3: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/
 - how to create ssm document: https://docs.aws.amazon.com/systems-manager/latest/userguide/documents-creating-content.html
-- amplify connect to existing resources: https://docs.amplify.aws/lib/auth/getting-started/q/platform/js/#install-amplify-libraries
-- amplify vite troubleshoot: https://ui.docs.amplify.aws/react/getting-started/troubleshooting#uncaught-referenceerror-global-is-not-defined-1
-- amplify upload files: https://docs.amplify.aws/lib/storage/upload/q/platform/js/
-- amplify api configuration troubleshoot: https://docs.amplify.aws/lib/restapi/authz/q/platform/js/
+- amplify(v5) connect to existing resources: https://docs.amplify.aws/lib/auth/getting-started/q/platform/js/#install-amplify-libraries
+- amplify(v5) vite troubleshoot: https://ui.docs.amplify.aws/react/getting-started/troubleshooting#uncaught-referenceerror-global-is-not-defined-1
+- amplify(v5) upload files: https://docs.amplify.aws/lib/storage/upload/q/platform/js/
+- amplify(v5) api configuration troubleshoot: https://docs.amplify.aws/lib/restapi/authz/q/platform/js/
 - super good cdk blogs: https://bobbyhadz.com/
 - add s3 cdk cors: https://bobbyhadz.com/blog/add-cors-s3-bucket-aws-cdk
 - useful gist with list of aws managed policies:
