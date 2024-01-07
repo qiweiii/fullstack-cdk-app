@@ -21,7 +21,7 @@ import {
 } from "aws-cdk-lib/aws-lambda-nodejs";
 import { RemovalPolicy, SecretValue, Stack, StackProps } from "aws-cdk-lib";
 
-export class InfraStackCC1 extends Stack {
+export class InfraStackFullstackCdk extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
@@ -31,7 +31,7 @@ export class InfraStackCC1 extends Stack {
     // high level construct
     const userPool: cognito.UserPool = new cognito.UserPool(
       this,
-      "code-challenge-1-UserPool-" + id,
+      "fullstack-cdk-UserPool-" + id,
       {
         selfSignUpEnabled: true, // Allow users to sign up
         autoVerify: { email: true }, // Verify email addresses by sending a verification code
@@ -43,7 +43,7 @@ export class InfraStackCC1 extends Stack {
     userPoolCfn.userPoolAddOns = { advancedSecurityMode: "ENFORCED" };
     userPoolCfn.schema = [
       {
-        name: "CC1UserPool",
+        name: "FullstackCdkUserPool",
         attributeDataType: "String",
         mutable: true,
         required: false,
@@ -54,19 +54,19 @@ export class InfraStackCC1 extends Stack {
     ];
     // create two user groups, one for admins one for users
     // these groups can be used without configuring a 3rd party IdP
-    new cognito.CfnUserPoolGroup(this, "code-challenge-1-AdminsGroup", {
+    new cognito.CfnUserPoolGroup(this, "fullstack-cdk-AdminsGroup", {
       groupName: "admin",
       userPoolId: userPool.userPoolId,
     });
 
-    new cognito.CfnUserPoolGroup(this, "code-challenge-1-UsersGroup", {
+    new cognito.CfnUserPoolGroup(this, "fullstack-cdk-UsersGroup", {
       groupName: "users",
       userPoolId: userPool.userPoolId,
     });
 
     const userPoolClient = new cognito.UserPoolClient(
       this,
-      "code-challenge-1-UserPoolClient",
+      "fullstack-cdk-UserPoolClient",
       {
         userPool,
         generateSecret: false, // Don't need to generate secret for web app running on browsers
@@ -80,7 +80,7 @@ export class InfraStackCC1 extends Stack {
     // and for users who have been authenticated and received a token.
     const identityPool = new cognito.CfnIdentityPool(
       this,
-      "code-challenge-1-IdentityPool-" + id,
+      "fullstack-cdk-IdentityPool-" + id,
       {
         allowUnauthenticatedIdentities: false,
         cognitoIdentityProviders: [
@@ -93,7 +93,7 @@ export class InfraStackCC1 extends Stack {
     );
     const isUserCognitoGroupRole = new iam.Role(
       this,
-      "code-challenge-1-users-group-role",
+      "fullstack-cdk-users-group-role",
       {
         description: "Default role for authenticated users",
         assumedBy: new iam.FederatedPrincipal(
@@ -118,7 +118,7 @@ export class InfraStackCC1 extends Stack {
     );
     new cognito.CfnIdentityPoolRoleAttachment(
       this,
-      "cc1-identity-pool-role-attachment",
+      "fullstackCdk-identity-pool-role-attachment",
       {
         identityPoolId: identityPool.ref,
         roles: {
@@ -142,8 +142,8 @@ export class InfraStackCC1 extends Stack {
     // Resource: Amazon S3 Bucket
     // ========================================================================
     // Purpose: file storage
-    const fileBucket = new s3.Bucket(this, "code-challenge-1-FileBucket", {
-      bucketName: "code-challenge-1-file-bucket",
+    const fileBucket = new s3.Bucket(this, "fullstack-cdk-FileBucket", {
+      bucketName: "fullstack-cdk-file-bucket",
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -162,8 +162,8 @@ export class InfraStackCC1 extends Stack {
       ],
     });
     // add a script for vm execution later
-    const scriptBucket = new s3.Bucket(this, "code-challenge-1-ScriptBucket", {
-      bucketName: "code-challenge-1-script-bucket",
+    const scriptBucket = new s3.Bucket(this, "fullstack-cdk-ScriptBucket", {
+      bucketName: "fullstack-cdk-script-bucket",
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -174,83 +174,77 @@ export class InfraStackCC1 extends Stack {
     // Resource: SSM
     // ========================================================================
     // add SSM Document (script for running in ec2 vm)
-    const cfnDocument = new ssm.CfnDocument(
-      this,
-      "code-challenge-1-SsmDocument",
-      {
-        content: {
-          schemaVersion: "2.2",
-          description: "Run a script",
-          parameters: {
-            id: {
-              type: "String",
-            },
-            region: {
-              type: "String",
-              default: process.env.CDK_DEFAULT_REGION,
-            },
-            bucketName: {
-              type: "String",
-              default: fileBucket.bucketName,
+    const cfnDocument = new ssm.CfnDocument(this, "fullstack-cdk-SsmDocument", {
+      content: {
+        schemaVersion: "2.2",
+        description: "Run a script",
+        parameters: {
+          id: {
+            type: "String",
+          },
+          region: {
+            type: "String",
+            default: process.env.CDK_DEFAULT_REGION,
+          },
+          bucketName: {
+            type: "String",
+            default: fileBucket.bucketName,
+          },
+        },
+        mainSteps: [
+          {
+            action: "aws:downloadContent",
+            name: "downloadScript",
+            inputs: {
+              sourceType: "S3",
+              sourceInfo: {
+                path: scriptBucket.urlForObject("vm-script.sh"),
+              },
             },
           },
-          mainSteps: [
-            {
-              action: "aws:downloadContent",
-              name: "downloadScript",
-              inputs: {
-                sourceType: "S3",
-                sourceInfo: {
-                  path: scriptBucket.urlForObject("vm-script.sh"),
-                },
-              },
+          {
+            action: "aws:runShellScript",
+            name: "runScript",
+            inputs: {
+              timeoutSeconds: "300",
+              runCommand: ["./vm-script.sh {{id}} {{bucketName}} {{region}} "],
             },
-            {
-              action: "aws:runShellScript",
-              name: "runScript",
-              inputs: {
-                timeoutSeconds: "300",
-                runCommand: [
-                  "./vm-script.sh {{id}} {{bucketName}} {{region}} ",
-                ],
-              },
-            },
-          ],
-        },
-        documentType: "Command",
-        name: "code-challenge-1-vm-script-document",
-      }
-    );
+          },
+        ],
+      },
+      documentType: "Command",
+      name: "fullstack-cdk-vm-script-document",
+    });
 
     // ========================================================================
     // Resource: VPC
     // ========================================================================
-    const vpc = new ec2.Vpc(this, "code-challenge-1-VPC", {
+    const vpc = new ec2.Vpc(this, "fullstack-cdk-VPC", {
       natGateways: 0,
       subnetConfiguration: [
         {
           cidrMask: 24,
-          name: "CC1-vpc-subnet",
+          name: "FullstackCdk-vpc-subnet",
           subnetType: ec2.SubnetType.PUBLIC,
         },
       ],
     });
     // create Security Group for debugging inside Instance
-    const cc1SG = new ec2.SecurityGroup(this, "cc1-sg", {
+    const fullstackCdkSG = new ec2.SecurityGroup(this, "fullstackCdk-sg", {
       vpc,
       allowAllOutbound: true,
     });
-    cc1SG.addIngressRule(
+    fullstackCdkSG.addIngressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(22),
       "allow SSH access from anywhere"
     );
-    cc1SG.addIngressRule(
+    fullstackCdkSG.addIngressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(80),
       "allow HTTP traffic from anywhere"
     );
-    cc1SG.addIngressRule(
+    fullstackCdkSG.addIngressRule(
       ec2.Peer.anyIpv4(),
       ec2.Port.tcp(443),
       "allow HTTPS traffic from anywhere"
@@ -259,8 +253,8 @@ export class InfraStackCC1 extends Stack {
     const ami = ec2.MachineImage.latestAmazonLinux2({
       cachedInContext: false,
     });
-    const cfnKeyPair = new ec2.CfnKeyPair(this, "code-challenge-1-CfnKeyPair", {
-      keyName: "CC1-key-name",
+    const cfnKeyPair = new ec2.CfnKeyPair(this, "fullstack-cdk-CfnKeyPair", {
+      keyName: "FullstackCdk-key-name",
     });
     const passRolePolicy = new iam.PolicyDocument({
       statements: [
@@ -271,7 +265,7 @@ export class InfraStackCC1 extends Stack {
       ],
     });
     // Instance role for trigger ec2
-    const instanceRole = new iam.Role(this, "CC1-InstanceRole", {
+    const instanceRole = new iam.Role(this, "FullstackCdk-InstanceRole", {
       assumedBy: new iam.ServicePrincipal("ec2.amazonaws.com"),
       inlinePolicies: {
         passRolePolicy,
@@ -285,7 +279,7 @@ export class InfraStackCC1 extends Stack {
     });
     const instanceProfile = new iam.CfnInstanceProfile(
       this,
-      "CC1-MyCfnInstanceProfile",
+      "FullstackCdk-MyCfnInstanceProfile",
       {
         roles: [instanceRole.roleName],
       }
@@ -295,7 +289,7 @@ export class InfraStackCC1 extends Stack {
     // Resource: Amazon DynamoDB Table
     // ========================================================================
     // Purpose: data storage
-    const dynamoTable = new dynamodb.Table(this, "code-challenge-1-FileTable", {
+    const dynamoTable = new dynamodb.Table(this, "fullstack-cdk-FileTable", {
       partitionKey: {
         name: "id",
         type: dynamodb.AttributeType.STRING,
@@ -324,7 +318,7 @@ export class InfraStackCC1 extends Stack {
     // lambda's role for trigger vm
     const lambdaTriggerVmRole = new iam.Role(
       this,
-      "code-challenge-1-LambdaExecutionRole",
+      "fullstack-cdk-LambdaExecutionRole",
       {
         assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
         inlinePolicies: {
@@ -361,7 +355,7 @@ export class InfraStackCC1 extends Stack {
         FILE_BUCKET: fileBucket.bucketName,
         SSM_DOCUMENT_NAME: cfnDocument.name || "",
         INSTANCE_PROFILE_ARN: instanceProfile.attrArn,
-        SG_ID: cc1SG.securityGroupId,
+        SG_ID: fullstackCdkSG.securityGroupId,
       },
     });
     // Add DynamoDB event source to Lambda function
@@ -394,9 +388,9 @@ export class InfraStackCC1 extends Stack {
     // API Gateway
     // ========================================================================
     // Purpose: create a REST API
-    const api = new apigateway.RestApi(this, "code-challenge-1-Api", {
-      restApiName: "CC1-Api",
-      description: "This service serves code-challenge-1",
+    const api = new apigateway.RestApi(this, "fullstack-cdk-Api", {
+      restApiName: "FullstackCdk-Api",
+      description: "This service serves fullstack-cdk",
       deployOptions: {
         stageName: "dev",
         metricsEnabled: true,
@@ -407,7 +401,7 @@ export class InfraStackCC1 extends Stack {
     // create authorizer
     const authorizer = new apigateway.CfnAuthorizer(this, "cfnAuth", {
       restApiId: api.restApiId,
-      name: "CC1APIAuthorizer",
+      name: "FullstackCdkAPIAuthorizer",
       type: "COGNITO_USER_POOLS",
       identitySource: "method.request.header.Authorization",
       providerArns: [userPool.userPoolArn],
@@ -430,9 +424,9 @@ export class InfraStackCC1 extends Stack {
     // Resource: Amplify App
     // ========================================================================
     // Purpose: creates an amplify frontend app
-    const amplifyApp = new amplify.App(this, "code-challenge-1-AmplifyApp", {
+    const amplifyApp = new amplify.App(this, "fullstack-cdk-AmplifyApp", {
       sourceCodeProvider: new amplify.GitHubSourceCodeProvider({
-        repository: "code-challenge-1",
+        repository: "fullstack-cdk",
         owner: "qiweiii",
         oauthToken: SecretValue.secretsManager(
           "github_access_token",
@@ -462,7 +456,7 @@ export class InfraStackCC1 extends Stack {
     // Resource: Final Setups
     // ========================================================================
     // at last, add a bucket deployment
-    new BucketDeployment(this, "code-challenge-1-vm-script", {
+    new BucketDeployment(this, "fullstack-cdk-vm-script", {
       sources: [Source.asset("./lib/vm-files")],
       destinationBucket: scriptBucket,
       retainOnDelete: false,
