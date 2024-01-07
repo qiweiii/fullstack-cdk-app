@@ -49,6 +49,7 @@ npx degit qiweiii/fullstack-cdk-app my-app
 
 ## Todo
 
+- [ ] aws-sdk migrate to v3, so NodejsFunction can use node v18
 - [ ] frontend migrate to amplify v6
 
 ## References & links

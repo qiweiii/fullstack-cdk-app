@@ -305,15 +305,12 @@ export class InfraStackFullstackCdk extends Stack {
     // common lambda props
     const nodeJsFunctionProps: NodejsFunctionProps = {
       bundling: {
-        externalModules: [
-          "@aws-sdk/*", // Use the 'aws-sdk' available in the Lambda runtime
-          "aws-lambda",
-        ],
+        externalModules: ["aws-sdk", "aws-lambda"],
       },
       environment: {
         TABLE_NAME: dynamoTable.tableName,
       },
-      runtime: lambda.Runtime.NODEJS_18_X,
+      runtime: lambda.Runtime.NODEJS_16_X,
     };
     // lambda's role for trigger vm
     const lambdaTriggerVmRole = new iam.Role(
