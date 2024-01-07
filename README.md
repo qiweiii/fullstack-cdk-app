@@ -56,7 +56,6 @@ npx degit qiweiii/fullstack-cdk-app my-app
 
 - setup local aws access: https://docs.aws.amazon.com/sdkref/latest/guide/access-sso.html
 - set up cdk: https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html
-- another older cdk template I created a few years ago: https://github.com/qiweiii/sample-react-cdk-app
 - init cdk app: https://docs.aws.amazon.com/cdk/v2/guide/hello_world.html
 - init a react 18 vite app: https://flaviocopes.com/vite-react-app/
 - aws cdk official examples: https://github.com/aws-samples/aws-cdk-examples/tree/master/typescript
